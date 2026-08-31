@@ -1,0 +1,199 @@
+-- ============================================================
+-- 个人理财管理系统 — 统计查询语句
+-- 目标DBMS：GaussDB (PostgreSQL 兼容)
+-- 执行顺序：第8步（07_create_functions.sql 之后）
+-- 每条查询可独立执行
+-- ============================================================
+
+-- ============================================================
+-- Q1: 本月收入总额
+-- ============================================================
+-- SELECT
+--     COALESCE(SUM(amount), 0) AS 本月收入
+-- FROM transaction_record
+-- WHERE trans_type = '收入'
+--   AND TO_CHAR(trans_date, 'YYYY-MM') = '2026-06';
+
+-- ============================================================
+-- Q2: 本月支出总额
+-- ============================================================
+-- SELECT
+--     COALESCE(SUM(amount), 0) AS 本月支出
+-- FROM transaction_record
+-- WHERE trans_type = '支出'
+--   AND TO_CHAR(trans_date, 'YYYY-MM') = '2026-06';
+
+-- ============================================================
+-- Q3: 本月各类别支出占比
+-- ============================================================
+-- SELECT
+--     c.category_name AS 类别,
+--     SUM(t.amount) AS 支出金额,
+--     ROUND(SUM(t.amount) * 100.0 / total.total_expense, 2) AS 占比百分比
+-- FROM transaction_record t
+-- JOIN category c ON t.category_id = c.category_id
+-- CROSS JOIN (
+--     SELECT SUM(amount) AS total_expense
+--     FROM transaction_record
+--     WHERE trans_type = '支出'
+--       AND TO_CHAR(trans_date, 'YYYY-MM') = '2026-06'
+-- ) total
+-- WHERE t.trans_type = '支出'
+--   AND TO_CHAR(t.trans_date, 'YYYY-MM') = '2026-06'
+-- GROUP BY c.category_name, total.total_expense
+-- ORDER BY 支出金额 DESC;
+
+-- ============================================================
+-- Q4: 各账户余额一览
+-- ============================================================
+-- SELECT
+--     account_id    AS 账户ID,
+--     account_name  AS 账户名称,
+--     account_type  AS 账户类型,
+--     balance       AS 当前余额
+-- FROM account
+-- ORDER BY balance DESC;
+
+-- ============================================================
+-- Q5: 预算完成率（本月实际 vs 预算）
+-- ============================================================
+-- SELECT
+--     c.category_name         AS 预算类别,
+--     b.budget_amount         AS 预算金额,
+--     COALESCE(SUM(t.amount), 0) AS 实际支出,
+--     ROUND(COALESCE(SUM(t.amount), 0) * 100.0 / b.budget_amount, 1) AS 完成率,
+--     CASE
+--         WHEN COALESCE(SUM(t.amount), 0) > b.budget_amount THEN '⚠️ 超支'
+--         WHEN COALESCE(SUM(t.amount), 0) >= b.budget_amount * 0.9 THEN '⚡ 接近预算'
+--         ELSE '✅ 正常'
+--     END AS 状态
+-- FROM budget b
+-- JOIN category c ON b.category_id = c.category_id
+-- LEFT JOIN transaction_record t
+--     ON t.category_id = b.category_id
+--     AND t.trans_type = '支出'
+--     AND TO_CHAR(t.trans_date, 'YYYY-MM') = b.year_month
+-- WHERE b.year_month = '2026-06'
+-- GROUP BY c.category_name, b.budget_amount
+-- ORDER BY 完成率 DESC;
+
+-- ============================================================
+-- Q6: 近4个月月度收支趋势
+-- ============================================================
+-- SELECT
+--     TO_CHAR(trans_date, 'YYYY-MM') AS 月份,
+--     SUM(CASE WHEN trans_type = '收入' THEN amount ELSE 0 END) AS 收入,
+--     SUM(CASE WHEN trans_type = '支出' THEN amount ELSE 0 END) AS 支出,
+--     SUM(CASE WHEN trans_type = '收入' THEN amount ELSE -amount END) AS 结余
+-- FROM transaction_record
+-- GROUP BY TO_CHAR(trans_date, 'YYYY-MM')
+-- ORDER BY 月份;
+
+-- ============================================================
+-- Q7: 资产负债总额与净资产
+-- ============================================================
+-- SELECT
+--     (SELECT COALESCE(SUM(amount), 0) FROM asset_liability WHERE item_type = '资产') AS 资产总额,
+--     (SELECT COALESCE(SUM(amount), 0) FROM asset_liability WHERE item_type = '负债') AS 负债总额,
+--     (SELECT COALESCE(SUM(balance), 0) FROM account) AS 账户余额,
+--     (SELECT COALESCE(SUM(amount), 0) FROM asset_liability WHERE item_type = '资产')
+--     - (SELECT COALESCE(SUM(amount), 0) FROM asset_liability WHERE item_type = '负债')
+--     + (SELECT COALESCE(SUM(balance), 0) FROM account) AS 净资产;
+
+-- ============================================================
+-- Q8: 本月日均消费金额
+-- ============================================================
+-- SELECT
+--     ROUND(SUM(amount) / COUNT(DISTINCT trans_date), 2) AS 日均消费
+-- FROM transaction_record
+-- WHERE trans_type = '支出'
+--   AND TO_CHAR(trans_date, 'YYYY-MM') = '2026-06';
+
+-- ============================================================
+-- Q9: 本月消费类别排行（按金额降序）
+-- ============================================================
+-- SELECT
+--     ROW_NUMBER() OVER (ORDER BY SUM(t.amount) DESC) AS 排名,
+--     c.category_name AS 类别,
+--     SUM(t.amount)   AS 消费金额,
+--     COUNT(*)        AS 笔数
+-- FROM transaction_record t
+-- JOIN category c ON t.category_id = c.category_id
+-- WHERE t.trans_type = '支出'
+--   AND TO_CHAR(t.trans_date, 'YYYY-MM') = '2026-06'
+-- GROUP BY c.category_name
+-- ORDER BY 消费金额 DESC;
+
+-- ============================================================
+-- Q10: 转账记录查询（显示源和目标账户）
+-- ============================================================
+-- SELECT
+--     t_exp.trans_date          AS 日期,
+--     a_from.account_name       AS 转出账户,
+--     a_to.account_name         AS 转入账户,
+--     t_exp.amount              AS 金额,
+--     t_exp.remark              AS 备注
+-- FROM transaction_record t_exp
+-- JOIN transaction_record t_inc
+--     ON t_exp.trans_date = t_inc.trans_date
+--     AND t_exp.amount = t_inc.amount
+--     AND t_exp.trans_type = '支出'
+--     AND t_inc.trans_type = '收入'
+--     AND ABS(EXTRACT(EPOCH FROM t_exp.create_time - t_inc.create_time)) < 10
+--     AND t_exp.remark LIKE '%转出%'
+--     AND t_inc.remark LIKE '%转入%'
+-- JOIN account a_from ON t_exp.account_id = a_from.account_id
+-- JOIN account a_to   ON t_inc.account_id = a_to.account_id
+-- ORDER BY t_exp.trans_date DESC;
+
+-- ============================================================
+-- Q11: 日现金流变化（近30天）
+-- ============================================================
+-- SELECT
+--     trans_date      AS 日期,
+--     SUM(CASE WHEN trans_type = '收入' THEN amount ELSE 0 END) AS 日收入,
+--     SUM(CASE WHEN trans_type = '支出' THEN amount ELSE 0 END) AS 日支出,
+--     SUM(CASE WHEN trans_type = '收入' THEN amount ELSE -amount END) AS 净现金流
+-- FROM transaction_record
+-- WHERE trans_date >= CURRENT_DATE - INTERVAL '30 days'
+-- GROUP BY trans_date
+-- ORDER BY trans_date;
+
+-- ============================================================
+-- Q12: 月度结余率（每月(收入-支出)/收入）
+-- ============================================================
+-- SELECT
+--     TO_CHAR(trans_date, 'YYYY-MM') AS 月份,
+--     SUM(CASE WHEN trans_type = '收入' THEN amount ELSE 0 END) AS 收入,
+--     SUM(CASE WHEN trans_type = '支出' THEN amount ELSE 0 END) AS 支出,
+--     SUM(CASE WHEN trans_type = '收入' THEN amount ELSE -amount END) AS 结余,
+--     ROUND(
+--         SUM(CASE WHEN trans_type = '收入' THEN amount ELSE -amount END) * 100.0
+--         / NULLIF(SUM(CASE WHEN trans_type = '收入' THEN amount ELSE 0 END), 0),
+--         1
+--     ) AS 结余率
+-- FROM transaction_record
+-- GROUP BY TO_CHAR(trans_date, 'YYYY-MM')
+-- ORDER BY 月份;
+
+-- ============================================================
+-- 快捷：使用视图查询
+-- ============================================================
+-- SELECT * FROM v_transaction_detail LIMIT 20;
+-- SELECT * FROM v_account_balances;
+-- SELECT * FROM v_monthly_income_expense;
+-- SELECT * FROM v_category_expense_ratio;
+-- SELECT * FROM v_budget_status;
+-- SELECT * FROM v_cash_flow_trend;
+-- SELECT * FROM v_net_worth;
+
+-- ============================================================
+-- 快捷：使用函数查询
+-- ============================================================
+-- SELECT * FROM fn_monthly_report(1, '2026-06');
+-- SELECT * FROM fn_category_spending(1, '2026-06-01', '2026-06-30');
+-- SELECT fn_net_worth(1) AS 净资产;
+-- CALL sp_add_transfer(1, 1, 2, 500.00, '2026-06-16', '转账测试');
+-- CALL sp_copy_budget(1, '2026-06', '2026-07');
+
+-- 统计查询全部结束
