@@ -10,6 +10,19 @@
 
 ## 项目结构
 
+## 动态网站（前后端分离）
+
+新增 `backend/` 和 `frontend/`：后端使用 FastAPI 提供 REST API，前端为独立静态页面。默认使用 `backend/finance_demo.db` 演示数据；接入正式 GaussDB 时，可继续迁移现有 `docs/sql/` 表结构，并在后端替换数据库适配层。
+
+启动后端：
+
+```powershell
+python -m pip install -r backend/requirements.txt
+python -m uvicorn backend.app:app --reload --port 8000
+```
+
+启动后端后，用浏览器打开 `frontend/index.html`。页面会通过 `http://127.0.0.1:8000/api` 动态读取和写入数据。
+
 ```
 数据库课设/
 ├── README.md                                  # 项目总说明
