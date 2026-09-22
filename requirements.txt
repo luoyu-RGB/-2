@@ -1,0 +1,8 @@
+# 核心运行依赖：不含任何 AI 组件也能完整启动（含可负担性分析与规则记账）
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.34
+pydantic>=2.10
+pydantic-settings>=2.7
+python-dotenv>=1.0
+# 仅 PostgreSQL / GaussDB 模式需要；纯 SQLite 演示可以注释掉
+psycopg2-binary>=2.9

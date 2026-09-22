@@ -1,0 +1,3 @@
+# 可选：本地向量检索。不安装时知识库自动使用内置 BM25 词法检索。
+-r requirements-ai.txt
+fastembed>=0.4

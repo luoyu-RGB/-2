@@ -21,16 +21,19 @@ except ImportError:
 
 app = Flask(__name__)
 
+# 数据库连接参数一律从环境变量读取（模板见项目根目录 .env.example）。
+# 注意：原实现把生产库的账号密码硬编码在这里，且该文件已推送到公开仓库，
+# 属于凭据泄露——请务必轮换数据库密码，并不要再把真实凭据写回源码。
 DB_CONFIG = {
-    'host': '222.27.161.245',
-    'port': 15432,
-    'dbname': 'llhdb',
-    'user': 's1362',
-    'password': 'Test@1234',
-    'options': '-c search_path=s1362,public',
+    'host': os.getenv('PG_HOST', 'localhost'),
+    'port': int(os.getenv('PG_PORT', '5432') or 5432),
+    'dbname': os.getenv('PG_DATABASE', 'finance_db'),
+    'user': os.getenv('PG_USER', ''),
+    'password': os.getenv('PG_PASSWORD', ''),
+    'options': f"-c search_path={os.getenv('PG_SCHEMA', 'public')},public",
 }
 
-SCHEMA = 's1362'
+SCHEMA = os.getenv('PG_SCHEMA', 'public')
 
 
 def get_db():

@@ -1,0 +1,3 @@
+# AI 对话与工具调用（OpenAI 兼容协议，可直连 DeepSeek）
+-r requirements.txt
+openai>=1.60

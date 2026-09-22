@@ -1,0 +1,6 @@
+# 开发与测试
+-r requirements.txt
+pytest>=8.3
+httpx>=0.28
+# 用于在 CI 里静态校验 docs/sql 下的 PostgreSQL 脚本语法（无需真实数据库）
+pglast>=7.0

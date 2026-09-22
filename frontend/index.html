@@ -1,1 +1,276 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>个人理财助手</title><link rel="stylesheet" href="./style.css"></head><body><aside><div class="brand"><span class="mark">¥</span><div><b>个人理财助手</b><small>Finance Companion</small></div></div><nav><a class="active">概览</a><a>收支明细</a><a>预算规划</a><a>资产负债</a></nav><div class="side-note"><small>本月建议</small><strong>先记录，再决策</strong><p>让每一笔钱都有去处。</p></div></aside><main><header><div><span class="eyebrow">YOUR MONEY, CLEARER</span><h1>财务概览</h1><p id="today"></p></div><button class="primary" id="addBtn">+ 记录一笔</button></header><section class="hero"><div><span class="eyebrow light">本月可用现金流</span><div class="hero-number" id="net">¥0</div><p>收入减去支出后的本月结余</p></div><div class="hero-stats"><div><small>月收入</small><b id="income">¥0</b></div><div><small>月支出</small><b id="expense">¥0</b></div><div><small>账户余额</small><b id="balance">¥0</b></div></div></section><div class="grid"><section class="panel"><div class="panel-head"><div><span class="eyebrow">ACCOUNTS</span><h2>我的账户</h2></div></div><div id="accounts" class="account-list"></div></section><section class="panel insight"><div class="panel-head"><div><span class="eyebrow">ADVISOR NOTE</span><h2>今日理财建议</h2></div><span class="pulse">●</span></div><div id="insights"></div></section></div><section class="panel"><div class="panel-head"><div><span class="eyebrow">RECENT ACTIVITY</span><h2>最近交易</h2></div><button class="text-btn" id="refreshBtn">刷新</button></div><div id="transactions" class="transactions"></div></section></main><dialog id="dialog"><form id="form"><button type="button" class="close" onclick="dialog.close()">×</button><span class="eyebrow">NEW ENTRY</span><h2>记录一笔交易</h2><label>账户<select id="accountId"></select></label><label>类型<select id="type"><option>支出</option><option>收入</option></select></label><label>分类<input id="category" value="日常消费"></label><label>金额<input id="amount" type="number" min="0.01" step="0.01" required></label><label>备注<input id="remark" placeholder="例如：午餐"></label><button class="primary full">保存记录</button></form></dialog><script src="./app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>个人理财助手</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<aside>
+  <div class="brand"><span class="mark">¥</span><div><b>个人理财助手</b><small>Finance Companion</small></div></div>
+  <nav id="nav">
+    <a data-view="overview" class="active">概览</a>
+    <a data-view="records">收支明细</a>
+    <a data-view="budget">预算规划</a>
+    <a data-view="assets">资产负债</a>
+    <a data-view="assistant">AI 顾问</a>
+  </nav>
+  <div class="side-note">
+    <small>数据来源</small>
+    <strong id="dbMode">连接中…</strong>
+    <p id="dbNote">正在读取后端状态</p>
+  </div>
+</aside>
+
+<main>
+  <header>
+    <div>
+      <span class="eyebrow" id="pageEyebrow">YOUR MONEY, CLEARER</span>
+      <h1 id="pageTitle">财务概览</h1>
+      <p id="pageSubtitle" class="subtitle">收入减去支出后的本月结余</p>
+    </div>
+    <div class="header-actions">
+      <button class="ghost" id="transferBtn">转账</button>
+      <button class="primary" id="addBtn">+ 记录一笔</button>
+    </div>
+  </header>
+
+  <!-- ==================== 概览 ==================== -->
+  <section class="view active" id="view-overview">
+    <section class="hero">
+      <div>
+        <span class="eyebrow light">本月可用现金流</span>
+        <div class="hero-number" id="net">¥0.00</div>
+        <p>收入 − 支出（本月净结余）</p>
+      </div>
+      <div class="hero-stats">
+        <div><small>月收入</small><b id="income">¥0</b></div>
+        <div><small>月支出</small><b id="expense">¥0</b></div>
+        <div><small>流动性余额</small><b id="balance">¥0</b></div>
+        <div><small>净资产</small><b id="netWorth">¥0</b></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head"><div><span class="eyebrow">ACCOUNTS</span><h2>我的账户</h2></div>
+          <button class="text-btn" id="addAccountBtn">新增账户</button></div>
+        <div id="accounts" class="account-list"></div>
+      </section>
+      <section class="panel insight">
+        <div class="panel-head"><div><span class="eyebrow">ADVISOR NOTE</span><h2>本月提醒</h2></div><span class="pulse">●</span></div>
+        <div id="insights"></div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head"><div><span class="eyebrow">SPENDING MIX</span><h2>支出构成</h2></div><span class="hint" id="ratioMonth"></span></div>
+        <div id="ratio" class="bars"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="eyebrow">TREND</span><h2>月度趋势</h2></div></div>
+        <div id="trend" class="trend"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head"><div><span class="eyebrow">RECENT ACTIVITY</span><h2>最近交易</h2></div>
+        <button class="text-btn" id="refreshBtn">刷新</button></div>
+      <div id="recent" class="transactions"></div>
+    </section>
+  </section>
+
+  <!-- ==================== 收支明细 ==================== -->
+  <section class="view" id="view-records">
+    <section class="panel">
+      <div class="filters">
+        <label>月份<input type="month" id="fMonth"></label>
+        <label>类型<select id="fType"><option value="">全部</option><option>收入</option><option>支出</option><option value="转账">转账</option></select></label>
+        <label>账户<select id="fAccount"><option value="">全部</option></select></label>
+        <label>关键词<input id="fKeyword" placeholder="备注或类别"></label>
+        <button class="primary" id="fApply">查询</button>
+        <button class="ghost" id="fReset">重置</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>日期</th><th>类别</th><th>账户</th><th>备注</th><th class="right">金额</th><th class="right">操作</th></tr></thead>
+          <tbody id="txnBody"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span id="txnCount" class="hint"></span>
+        <button class="ghost" id="prevPage">上一页</button>
+        <button class="ghost" id="nextPage">下一页</button>
+      </div>
+    </section>
+  </section>
+
+  <!-- ==================== 预算规划 ==================== -->
+  <section class="view" id="view-budget">
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head"><div><span class="eyebrow">BUDGET</span><h2>本月预算执行</h2></div><span class="hint" id="budgetMonth"></span></div>
+        <div id="budgetStatus" class="bars"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="eyebrow">SET</span><h2>设置预算</h2></div></div>
+        <form id="budgetForm" class="stack">
+          <label>月份<input type="month" id="budgetFormMonth" required></label>
+          <label>类别<select id="budgetCategory" required></select></label>
+          <label>预算金额<input type="number" id="budgetAmount" min="0.01" step="0.01" required></label>
+          <button class="primary" type="submit">保存预算</button>
+        </form>
+        <hr>
+        <button class="ghost" id="copyBudgetBtn">复制上月预算到本月</button>
+        <p class="hint">预算保存在数据库 <code>budget</code> 表，执行情况来自视图 <code>v_budget_status</code>。</p>
+      </section>
+    </div>
+  </section>
+
+  <!-- ==================== 资产负债 ==================== -->
+  <section class="view" id="view-assets">
+    <div class="grid">
+      <section class="panel worth">
+        <span class="eyebrow light">NET WORTH</span>
+        <div class="hero-number" id="worthValue">¥0.00</div>
+        <div class="worth-grid">
+          <div><small>资产</small><b id="worthAssets">¥0</b></div>
+          <div><small>负债</small><b id="worthLiabilities">¥0</b></div>
+          <div><small>账户余额</small><b id="worthBalance">¥0</b></div>
+        </div>
+        <p class="hint light">取自视图 <code>v_net_worth</code>：资产 − 负债 + 账户余额</p>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><span class="eyebrow">NEW ITEM</span><h2>新增资产 / 负债</h2></div></div>
+        <form id="assetForm" class="stack">
+          <label>名称<input id="assetName" required placeholder="如：定期存款 / 住房贷款"></label>
+          <label>类型<select id="assetType"><option>资产</option><option>负债</option></select></label>
+          <label>金额<input type="number" id="assetAmount" min="0.01" step="0.01" required></label>
+          <label>日期<input type="date" id="assetDate" required></label>
+          <label>备注<input id="assetRemark"></label>
+          <button class="primary" type="submit">添加</button>
+        </form>
+      </section>
+    </div>
+    <section class="panel">
+      <div class="panel-head"><div><span class="eyebrow">ITEMS</span><h2>资产负债明细</h2></div></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>名称</th><th>类型</th><th>日期</th><th>备注</th><th class="right">金额</th><th class="right">操作</th></tr></thead>
+          <tbody id="assetBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- ==================== AI 顾问 ==================== -->
+  <section class="view" id="view-assistant">
+    <div class="grid wide-left">
+      <section class="panel chat-panel">
+        <div class="panel-head"><div><span class="eyebrow">AI ADVISOR</span><h2>对话式记账与理财咨询</h2></div><span class="badge" id="aiMode">检查中</span></div>
+        <div id="chatLog" class="chat-log"></div>
+        <div class="quick" id="quickPrompts"></div>
+        <form id="chatForm" class="chat-form">
+          <input id="chatInput" placeholder="例如：今天午餐花了 32 元，用支付宝 / 我想买 8500 元的笔记本，现在能买吗" autocomplete="off">
+          <button class="primary" type="submit">发送</button>
+        </form>
+        <p class="hint">写操作（记账/转账/预算）会先生成预览，点「确认执行」后才会落库，并记入审计日志。</p>
+      </section>
+      <div class="stack-col">
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">AUDIT</span><h2>AI 操作审计</h2></div></div>
+          <div id="auditLog" class="audit"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">KNOWLEDGE</span><h2>理财资料</h2></div></div>
+          <form id="knowledgeForm" class="stack">
+            <label>标题<input id="kbTitle" placeholder="如：消费贷款条款"></label>
+            <label>内容<textarea id="kbContent" rows="4" placeholder="粘贴条款、产品说明或理财笔记，入库后可提问"></textarea></label>
+            <button class="primary" type="submit">入库</button>
+          </form>
+          <div id="knowledgeList" class="kb-list"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ==================== 对话框 ==================== -->
+<dialog id="txnDialog">
+  <form id="txnForm" method="dialog">
+    <button type="button" class="close" data-close>×</button>
+    <span class="eyebrow">ENTRY</span>
+    <h2 id="txnTitle">记录一笔交易</h2>
+    <input type="hidden" id="txnId">
+    <label>账户<select id="txnAccount" required></select></label>
+    <label>类型<select id="txnType"><option>支出</option><option>收入</option></select></label>
+    <label>类别<select id="txnCategory" required></select></label>
+    <label>金额<input type="number" id="txnAmount" min="0.01" step="0.01" required></label>
+    <label>日期<input type="date" id="txnDate" required></label>
+    <label>备注<input id="txnRemark" maxlength="200"></label>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-close>取消</button>
+      <button type="submit" class="primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="transferDialog">
+  <form id="transferForm" method="dialog">
+    <button type="button" class="close" data-close>×</button>
+    <span class="eyebrow">TRANSFER</span>
+    <h2>账户间转账</h2>
+    <label>转出账户<select id="trFrom" required></select></label>
+    <label>转入账户<select id="trTo" required></select></label>
+    <label>金额<input type="number" id="trAmount" min="0.01" step="0.01" required></label>
+    <label>日期<input type="date" id="trDate" required></label>
+    <label>备注<input id="trRemark" maxlength="200"></label>
+    <p class="hint">转账会写入两条记录（转出 + 转入）并共享同一个 <code>transfer_group_id</code>；余额由触发器维护。</p>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-close>取消</button>
+      <button type="submit" class="primary">确认转账</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="accountDialog">
+  <form id="accountForm" method="dialog">
+    <button type="button" class="close" data-close>×</button>
+    <span class="eyebrow">ACCOUNT</span>
+    <h2 id="accountTitle">新增账户</h2>
+    <input type="hidden" id="accountId">
+    <label>账户名称<input id="accountName" required maxlength="50"></label>
+    <label>账户类型<select id="accountType"><option>现金</option><option selected>银行卡</option><option>电子钱包</option><option>投资账户</option></select></label>
+    <label id="openingWrap">期初余额<input type="number" id="accountBalance" min="0" step="0.01" value="0"></label>
+    <p class="hint" id="accountHint">余额只能由交易驱动，编辑时不可直接修改。</p>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-close>取消</button>
+      <button type="submit" class="primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="assetDialog">
+  <form id="assetEditForm" method="dialog">
+    <button type="button" class="close" data-close>×</button>
+    <span class="eyebrow">ITEM</span>
+    <h2>编辑资产 / 负债</h2>
+    <input type="hidden" id="editAssetId">
+    <label>名称<input id="editAssetName" required></label>
+    <label>类型<select id="editAssetType"><option>资产</option><option>负债</option></select></label>
+    <label>金额<input type="number" id="editAssetAmount" min="0.01" step="0.01" required></label>
+    <label>日期<input type="date" id="editAssetDate" required></label>
+    <label>备注<input id="editAssetRemark"></label>
+    <div class="dialog-actions">
+      <button type="button" class="ghost" data-close>取消</button>
+      <button type="submit" class="primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast"></div>
+<script src="./app.js"></script>
+</body>
+</html>
